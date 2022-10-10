@@ -1,67 +1,112 @@
-# PROJECT: 싱그러운 우리 (by SeSAC)
-## 소개
-- [싱그러운 집](https://www.shouse.garden/main/main.html)을 모티브로 한 사이트
-- 자연과 식물에 관한 여행지를 포스팅, 공유하는 커뮤니티 사이트
+# 프로젝트 소개
 
-## SeSAC 팀 인원
-- BE(2명): 김동규, 박서윤
-- FE(4명): 김영수, 박성은, 손민지, 이금관
-<img width="700px" src="https://user-images.githubusercontent.com/91110192/184283372-ca6c21ff-6cd2-4449-91aa-a40dc203f012.jpg">
+* 프로젝트명: Fresh us
+* 개발기간: 2022.08.01-2022.08.11
+* 개발인원: Frontend 4, Backend 2 (Backend 담당)
+* 기술스택: Python, Django, MySQL, Miniconda
 
-## 개발 기간
-- 개발 기간 : 2022-08-01 ~ 2022-08-12 (12일)
-- 협업 툴 : Slack, Trello, Github, Notion
+친환경을 주제로한 여행지 커뮤니티 사이트를 구현해보았습니다. 짧게 정해진 프로젝트 기한에 맞추기 위해 기존의 커머스 사이트 싱그러운 집(https://www.shouse.garden/main/main.html)사이트의 기획을 클론하였습니다. 짧은 기간안에 결과물을 만들기 위해 웹 서비스 작성시 대부분의 기반이 이미 만들어져있는 장고 프레임워크를 사용하였습니다. 
 
-## 기술 스택
-|                                                Language                                                |                                                Framwork                                                |                                               Database                                               |                                                     ENV                                                      |                                                   HTTP                                                   |                                                  Deploy                                                 |
-| :----------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------: |:------------------------------------------------------------------------------------------------------: |
-| <img src="https://img.shields.io/badge/python-3776AB?style=for-the-badge&logo=python&logoColor=white"> | <img src="https://img.shields.io/badge/django-092E20?style=for-the-badge&logo=django&logoColor=white"> | <img src="https://img.shields.io/badge/mysql-4479A1?style=for-the-badge&logo=mysql&logoColor=black"> | <img src="https://img.shields.io/badge/miniconda3-44A833?style=for-the-badge&logo=anaconda&logoColor=white"> | <img src="https://img.shields.io/badge/postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white"> | <img src="https://img.shields.io/badge/aws-232F3E?style=for-the-badge&logo=Amazon AWS&logoColor=white"> 
+## 구현
 
-
-## Backend 역할
-**박서윤**
-- ERD 모델링
-- 여행지 리스트
-  - (GET) 여행지 리스트 조회
-    - Q객체를 이용한 필터링, 페이지네이션 구현
-- 여행지 상세
-  - (POST) 여행지 게시물 등록
-    - s3를 이용하여 이미지 업로드
-  - (GET) 여행지 게시물 상세 조회
-  - (DELETE) 여행지 게시물 삭제
-    - s3를 이용하여 이미지 삭제
-
-**김동규**
-- ERD 모델링
-- 소셜 로그인
-  - 카카오 API 로그인 구현
-- 여행지 상세 댓글
-  - (GET) 댓글 조회, 로그인한 이용자의 댓글에 `수정`, `삭제`버튼 활성화
-  - (POST) 댓글 작성
-  - (PATCH) 댓글 수정
-  - (DELETE) 댓글 삭제
+* 소셜 API를 이용한 회원가입 및 로그인
+* 게시물 목록 조회, 검색 및 페이지네이션 구현
+* 게시물 CRUD 구현
+* 댓글 CRUD 구현
  
-## 모델링
-<img width="1400px" src="https://user-images.githubusercontent.com/91110192/184282825-6ca9b57b-20a5-4a4b-9490-4d6fb9989d07.png">
+### 데이터베이스 다이어그램
 
-## 사이트 시현 영상
-[싱그러운 집 시현영상](https://www.youtube.com/watch?v=ayGvLwikPxk)
+![diagram](./schema.png)
 
-### 메인
-<img src="https://user-images.githubusercontent.com/104430030/184285325-a0b7a399-1acd-4291-939e-822bf55ee7c2.GIF">
+### 담당 구현 사항
 
-### 소셜 로그인 및 로그아웃
-<img src="https://user-images.githubusercontent.com/104430030/184285340-ee5e048f-7c4b-4b57-9593-2896b547785e.GIF">
-<img src="https://user-images.githubusercontent.com/104430030/184287240-f172a994-ea8e-461b-9098-db83d5e843e5.GIF">
+* 카카오 소셜 API를 이용하여 회원가입 및 로그임 구현
 
-### 게시물 리스트
-<img src="https://user-images.githubusercontent.com/104430030/184285717-1153760c-cf3e-4077-893f-bd4cbb9aa548.GIF"><img src="https://user-images.githubusercontent.com/104430030/184285725-4c81c58e-d5db-4789-97e5-640f5a461dbc.GIF">
+```python
+from core.utils.kakao_api import KakaoAPI
 
-### 게시물 포스팅
-<img src="https://user-images.githubusercontent.com/104430030/184286796-d27b30a6-fa53-435b-adb5-8118400a72ef.GIF"><img src="https://user-images.githubusercontent.com/104430030/184286846-0a524f00-b19d-41e9-949c-28c496a108b0.GIF">
+class KakaoSocialLoginView(View):
+    def get(self, request):
+        auth_code   = request.GET.get('code')
+        kakao_api   = KakaoAPI(settings.KAKAO_REST_API_KEY, settings.KAKAO_REDIRECT_URI)
+        kakao_token = kakao_api.get_kakao_access_token(auth_code)
+        kakao_info  = kakao_api.get_user_kakao_information(kakao_token)
 
-### 게시물 상세
-<img src="https://user-images.githubusercontent.com/104430030/184287166-e906db31-38ad-4c31-9977-bc0cfc8a0e98.GIF"><img src="https://user-images.githubusercontent.com/104430030/184287193-25fc5f1c-1521-4736-aea3-ae1d14cb6e4c.GIF"><img src="https://user-images.githubusercontent.com/104430030/184287120-328c6e8b-2a82-4413-a752-6daf8a689056.GIF"><img src="https://user-images.githubusercontent.com/104430030/184287124-347473db-a34e-4cd6-af8a-72b9a3a44540.GIF">
+        user, created = User.objects.get_or_create(
+            kakao_id          = kakao_info['kakao_id'],
+            email             = kakao_info['email'],
+            nickname          = kakao_info['nickname'],
+            profile_image_url = kakao_info['profile_image_url'],
+        )
+
+        kakao_api.expire_user_access_token(kakao_token)
+
+        message = "Sign_in"
+        if created == True:
+            message = "Sign_up"
+        
+        access_token = jwt.encode({'id' : user.id}, settings.SECRET_KEY, settings.ALGORITHM)
+
+        return JsonResponse({'access_token' : access_token, 'message' : message}, status = 200)
+```
+
+카카오 API를 이용하는 모듈을 별도로 구별하여 코드를 작성하였습니다. 최초로 로그인을 하게되면 카카오 정보를 바탕으로 사이트에 회원가입 되도록 하였습니다. 로그인 후에는 카카오 정보를 가져오기 위한 토큰을 만료시키고, 가입된 정보를 포함한 JWT를 클라이언트에 전달하여 로그인 상태를 유지할 수 있도록 구현하였습니다.
+
+* 댓글 CRUD 구현
+
+```python
+# ./core/login_decorator.py
+access_token = request.headers.get('AUTHORIZATION')
+
+if access_token == '':
+    request.user = None
+    return func(self, request, *args, **kwargs)
+
+payload      = jwt.decode(access_token, settings.SECRET_KEY, settings.ALGORITHM)
+request.user = User.objects.get(id=payload['id'])
+
+return func(self, request, *args, **kwargs)
+
+# ./comments/view.py
+@login_decorator
+def get(self, request, post_id):
+    user   = request.user
+
+    user_id = None
+    if not user == None:    
+        user_id = user.id
+```
+
+게시글 상세 페이지에서 댓글 조회를 구현하는데 문제가 있었습니다. 댓글 조회의 경우 회원과 비회원이 모두 가능해야하는데 JWT를 통해 회원임을 검증하는 데코레이터에 의해 비회원이 댓글을 조회할 수 없게된 것입니다. 그래서 비회원이 페이지를 요청할 경우 헤더의 AUTHORIZATION에 공백을 전달하여 이를 구분하여 비회원이 댓글을 조회할 수 있도록 구현하였습니다.
+
+```python
+for comment in comments:
+    result.append({
+        'id'               : comment.id,
+        'user_id'          : comment.user_id,
+        'parent_comment_id': comment.parent_comment_id,
+        'profile_image_url': comment.user.profile_image_url,
+        'nickname'         : comment.user.nickname,
+        'comment'          : comment.comment,
+        'created_at'       : comment.created_at,
+        'depth'            : 0
+    })
+    for review in Comment.objects.filter(parent_comment_id=comment.id).order_by('-created_at'):
+        result.append({
+            'id'               : review.id,
+            'user_id'          : review.user_id,
+            'parent_comment_id': review.parent_comment_id,
+            'profile_image_url': review.user.profile_image_url,
+            'nickname'         : review.user.nickname,
+            'comment'          : review.comment,
+            'created_at'       : review.created_at,
+            'depth'            : 1
+        })
+
+result_res = {'comment' : result[offset : offset + limit]}
+```
+
+대댓글을 구현하기 위한 코드입니다. 댓글과 대댓글의 개수를 합쳐 적용되는 페이지네이션을 구현하기 위해 상단과 같이 코드를 작성하였습니다.
 
 ## API 명세서
 <img width="789" alt="스크린샷 2022-07-30 오후 3 33 59" src="https://user-images.githubusercontent.com/91110192/184284788-c9657496-28e3-4027-bccf-9ebd0ef858ed.png">
