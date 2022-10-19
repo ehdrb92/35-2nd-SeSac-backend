@@ -1,4 +1,3 @@
-from ssl import create_default_context
 import jwt
 
 from django.views import View
