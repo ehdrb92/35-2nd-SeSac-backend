@@ -18,95 +18,23 @@
 
 ![diagram](./schema.png)
 
-### 담당 구현 사항
+### 프로젝트 구현 상세 (Backend)
 
 * 카카오 소셜 API를 이용하여 회원가입 및 로그임 구현
 
-```python
-from core.utils.kakao_api import KakaoAPI
+    카카오 API를 사용하여 클라이언트의 카카오 회원 정보를 이용해 자체 사이트 회원가입을 하는 방식을 채택했습니다. 클라이언트에서 카카오 인증 과정을 거쳐 인가 코드를 받아와 서버 측에 전달하면 해당 인가 코드를 이용하여 토큰을 얻어오고 클라이언트의 카카오 회원 정보를 가져옵니다. 일련의 과정들이 완료되면 카카오 토큰은 만료시킵니다.
 
-class KakaoSocialLoginView(View):
-    def get(self, request):
-        auth_code   = request.GET.get('code')
-        kakao_api   = KakaoAPI(settings.KAKAO_REST_API_KEY, settings.KAKAO_REDIRECT_URI)
-        kakao_token = kakao_api.get_kakao_access_token(auth_code)
-        kakao_info  = kakao_api.get_user_kakao_information(kakao_token)
+    회원가입이 된 이후 클라이언트의 인증 상태를 유지하기 위해 토큰 기반 인증 방식을 채택하였습니다. payload에 담긴 유저의 정보를 가지고 인가 과정을 거치게 됩니다.
 
-        user, created = User.objects.get_or_create(
-            kakao_id          = kakao_info['kakao_id'],
-            email             = kakao_info['email'],
-            nickname          = kakao_info['nickname'],
-            profile_image_url = kakao_info['profile_image_url'],
-        )
+* 게시물 리스트 및 CRUD 구현
 
-        kakao_api.expire_user_access_token(kakao_token)
-
-        message = "Sign_in"
-        if created == True:
-            message = "Sign_up"
-        
-        access_token = jwt.encode({'id' : user.id}, settings.SECRET_KEY, settings.ALGORITHM)
-
-        return JsonResponse({'access_token' : access_token, 'message' : message}, status = 200)
-```
-
-카카오 API를 이용하는 모듈을 별도로 구별하여 코드를 작성하였습니다. 최초로 로그인을 하게되면 카카오 정보를 바탕으로 사이트에 회원가입 되도록 하였습니다. 로그인 후에는 카카오 정보를 가져오기 위한 토큰을 만료시키고, 가입된 정보를 포함한 JWT를 클라이언트에 전달하여 로그인 상태를 유지할 수 있도록 구현하였습니다.
+    게시물 리스트 페이지에서는 무작위로 추천 게시물이 3개씩 표현됩니다. 그리고 게시물은 위도, 경도의 정보를 포함하고 있어 추천 게시물의 위치 데이터를 기반으로 지도에 위치를 표시합니다.
+    
+    게시물을 등록할 때 제목, 본문 등의 정보는 모두 자체 서버 데이터베이스에 저장되게 됩니다. 이미지 파일의 경우 AWS의 s3를 이용하였습니다. 
 
 * 댓글 CRUD 구현
 
-```python
-# ./core/login_decorator.py
-access_token = request.headers.get('AUTHORIZATION')
-
-if access_token == '':
-    request.user = None
-    return func(self, request, *args, **kwargs)
-
-payload      = jwt.decode(access_token, settings.SECRET_KEY, settings.ALGORITHM)
-request.user = User.objects.get(id=payload['id'])
-
-return func(self, request, *args, **kwargs)
-
-# ./comments/view.py
-@login_decorator
-def get(self, request, post_id):
-    user   = request.user
-
-    user_id = None
-    if not user == None:    
-        user_id = user.id
-```
-
-게시글 상세 페이지에서 댓글 조회를 구현하는데 문제가 있었습니다. 댓글 조회의 경우 회원과 비회원이 모두 가능해야하는데 JWT를 통해 회원임을 검증하는 데코레이터에 의해 비회원이 댓글을 조회할 수 없게된 것입니다. 그래서 비회원이 페이지를 요청할 경우 헤더의 AUTHORIZATION에 공백을 전달하여 이를 구분하여 비회원이 댓글을 조회할 수 있도록 구현하였습니다.
-
-```python
-for comment in comments:
-    result.append({
-        'id'               : comment.id,
-        'user_id'          : comment.user_id,
-        'parent_comment_id': comment.parent_comment_id,
-        'profile_image_url': comment.user.profile_image_url,
-        'nickname'         : comment.user.nickname,
-        'comment'          : comment.comment,
-        'created_at'       : comment.created_at,
-        'depth'            : 0
-    })
-    for review in Comment.objects.filter(parent_comment_id=comment.id).order_by('-created_at'):
-        result.append({
-            'id'               : review.id,
-            'user_id'          : review.user_id,
-            'parent_comment_id': review.parent_comment_id,
-            'profile_image_url': review.user.profile_image_url,
-            'nickname'         : review.user.nickname,
-            'comment'          : review.comment,
-            'created_at'       : review.created_at,
-            'depth'            : 1
-        })
-
-result_res = {'comment' : result[offset : offset + limit]}
-```
-
-대댓글을 구현하기 위한 코드입니다. 댓글과 대댓글의 개수를 합쳐 적용되는 페이지네이션을 구현하기 위해 상단과 같이 코드를 작성하였습니다.
+    기본적으로 게시물에 작성되는 댓글의 CRUD를 구현하였습니다. 특징적인 부분은 댓글과 하위 댓글입니다. 클라이언트는 댓글의 대댓글을 작성할 수 있습니다. 댓글과 대댓글은 기본적으로 최신순으로 상위에 노출됩니다. 댓글과 대댓글의 개수를 합쳐 한 페이지에 5개의 댓글이 노출되도록 구현하였습니다. 댓글과 대댓글은 depth로 구분합니다.
 
 ## API 명세서
 <img width="789" alt="스크린샷 2022-07-30 오후 3 33 59" src="https://user-images.githubusercontent.com/91110192/184284788-c9657496-28e3-4027-bccf-9ebd0ef858ed.png">
