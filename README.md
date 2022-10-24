@@ -16,7 +16,7 @@
  
 ### 데이터베이스 다이어그램
 
-![diagram](./schema.png)
+![diagram](./freshus.png)
 
 ### 프로젝트 구현 상세 (Backend)
 
